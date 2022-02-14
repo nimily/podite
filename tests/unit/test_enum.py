@@ -37,11 +37,14 @@ def test_bytes_enum_with_field():
         Y = Variant(field=U32)
         Z = Variant(8, field=U16)
 
+    assert A.X.to_bytes() == b"\x03"
+
     assert not A.is_static()
     assert A.calc_max_size() == 5
 
     assert A.to_bytes(A.X) == b"\x03"
     assert A.to_bytes(A.Y(5)) == b"\x04\x05\x00\x00\x00"
+    assert A.Y(5).to_bytes() == b"\x04\x05\x00\x00\x00"
     assert A.to_bytes(A.Z(7)) == b"\x08\x07\x00"
 
     assert A.X == A.from_bytes(b"\x03")

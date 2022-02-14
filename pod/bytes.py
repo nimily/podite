@@ -137,8 +137,8 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
 
             return cls.calc_max_size()
 
-        def to_bytes(cls, obj, **kwargs):
-            return cls.pack(obj, converter="bytes", **kwargs)
+        def to_bytes(self, **kwargs):
+            return self.__class__.pack(self, converter="bytes", **kwargs)
 
         def from_bytes(cls, raw, **kwargs):
             return cls.unpack(raw, converter="bytes", **kwargs)
@@ -148,7 +148,7 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
                 "is_static": classmethod(is_static),
                 "calc_max_size": classmethod(calc_max_size),
                 "calc_size": classmethod(calc_size),
-                "to_bytes": classmethod(to_bytes),
+                "to_bytes": to_bytes,
                 "from_bytes": classmethod(from_bytes),
             }
         )
