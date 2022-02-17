@@ -1,11 +1,14 @@
 from typing import Type
+from functools import lru_cache
 
 from pod._utils import _GetitemToCall, get_calling_module
 from .enum import Enum, Variant
 from ..decorators import pod
 
 
+@lru_cache(10000)
 def _option(_name, type_: Type):
+    print("Creating new option class ", type_)
     @pod
     class _Option(Enum):
         NONE = Variant()

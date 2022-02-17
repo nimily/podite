@@ -1,3 +1,5 @@
+import _io
+
 from .atomic import U32
 from ..bytes import BYTES_CATALOG
 from .._utils import _GetitemToCall, get_concrete_type, get_calling_module
@@ -32,7 +34,9 @@ def _fixed_len_array(name, type_, length):
             return result
 
         @classmethod
-        def _to_bytes_partial(cls, obj, buffer):
+        def _to_bytes_partial(cls, buffer, obj):
+            if len(obj) != length:
+                raise ValueError("Length of array does not equal fixed length")
             for elem in obj:
                 BYTES_CATALOG.pack_partial(
                     get_concrete_type(module, type_), buffer, elem
@@ -69,10 +73,13 @@ def _fixed_len_bytes(name, length):
 
         @classmethod
         def _from_bytes_partial(cls, buffer):
-            return buffer.read(length)
+            val = buffer.read(length)
+            if len(val) != length:
+                raise ValueError(f"Buffer length is {len(val)}, but expected {length}")
+            return val
 
         @classmethod
-        def _to_bytes_partial(cls, obj, buffer):
+        def _to_bytes_partial(cls, buffer, obj):
             buffer.write(obj.ljust(length, b"\x00"))
 
         @classmethod
@@ -121,7 +128,7 @@ def _fixed_len_str(name, length, encoding="UTF-8", autopad=True):
             return encoded.decode(encoding)
 
         @classmethod
-        def _to_bytes_partial(cls, obj, buffer):
+        def _to_bytes_partial(cls, buffer: _io.BytesIO, obj):
             encoded = obj.encode(encoding)
             if len(encoded) > length:
                 raise ValueError("len(value) > length")
@@ -184,7 +191,7 @@ def _var_len_array(name, type_, max_length=None, length_type=None):
             return result
 
         @classmethod
-        def _to_bytes_partial(cls, obj, buffer):
+        def _to_bytes_partial(cls, buffer, obj):
             if len(obj) > max_length:
                 raise RuntimeError("actual_length > max_length")
 
@@ -242,7 +249,7 @@ def _var_len_bytes(name, max_length=None, length_type=None):
             return buffer.read(length)
 
         @classmethod
-        def _to_bytes_partial(cls, obj, buffer):
+        def _to_bytes_partial(cls, buffer, obj):
             if len(obj) > max_length:
                 raise RuntimeError("actual_length > max_length")
 
@@ -291,7 +298,7 @@ def _var_len_str(name, max_length=None, length_type=None, encoding="UTF-8"):
             return buffer.read(length).decode(encoding)
 
         @classmethod
-        def _to_bytes_partial(cls, obj, buffer):
+        def _to_bytes_partial(cls, buffer, obj):
             if len(obj) > max_length:
                 raise RuntimeError("actual_length > max_length")
 
@@ -320,6 +327,3 @@ Vec = _GetitemToCall("Vec", _var_len_array)
 Bytes = _GetitemToCall("Bytes", _var_len_bytes)
 Str = _GetitemToCall("Str", _var_len_str)
 
-
-def register_arrays():
-    BYTES_CATALOG.register(_var_len_str.)

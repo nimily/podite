@@ -1,5 +1,5 @@
-from enum import _is_sunder, _is_dunder, _is_descriptor  # type: ignore
 from dataclasses import dataclass
+from enum import _is_sunder, _is_dunder, _is_descriptor  # type: ignore
 from typing import (
     Optional,
     Type,
@@ -13,13 +13,12 @@ from typing import (
 )
 
 from pod.bytes import BYTES_CATALOG
-from pod.json import JSON_CATALOG
 from pod.decorators import (
     POD_OPTIONS,
     POD_OPTIONS_OVERRIDE,
     POD_OPTIONS_DATACLASS_FN,
 )
-
+from pod.json import JSON_CATALOG
 from .atomic import U8
 from .. import pod
 from .._utils import resolve_name_mapping, get_calling_module, get_concrete_type
@@ -210,8 +209,45 @@ class Enum(int, Generic[TagType], metaclass=EnumMeta):  # type: ignore
             self.field,
         )
 
+    def __ne___(self, other):
+        print("in ne")
+        return not (self == other)
+
     def __eq__(self, other):
-        return type(self) == type(other) and int(self) == int(other)
+        print("in eq")
+        if type(self) == type(other):
+            print("a")
+            if int(self) == int(other):
+                print('b')
+                print(self.field)
+                print(other.field)
+                # for att in dir(self):
+                #     print(att, getattr(self, att))
+                # print(self.SOME.field)
+                if self.field == other.field:
+                    print("c")
+                    return True
+        return False
+        # fast path when types are same or tags are different
+        # if int(self) != int(other):
+        #     print('216')
+        #     return False
+        # if type(self) == type(other):
+        #     print('219')
+        #     return self.field == other.field
+        # # slow path when we must check structural equality
+        # if not isinstance(other, Enum):
+        #     print('223')
+        #     return False
+        # if self.field != other.field:
+        #     return False
+        # for name_a, name_b in zip(self.get_member_names(), other.get_member_names()):
+        #     print(name_a, name_b)
+        #     if name_a != name_b:
+        #         return False
+        #     # TODO: check that field types are the same
+        # print("true")
+        # return True
 
     def __hash__(self):
         return hash((type(self), int(self), self.field))
