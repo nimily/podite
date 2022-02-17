@@ -319,3 +319,7 @@ FixedLenStr = _GetitemToCall("FixedLenStr", _fixed_len_str)
 Vec = _GetitemToCall("Vec", _var_len_array)
 Bytes = _GetitemToCall("Bytes", _var_len_bytes)
 Str = _GetitemToCall("Str", _var_len_str)
+
+
+def register_arrays():
+    BYTES_CATALOG.register(_var_len_str.)
