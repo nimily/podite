@@ -27,14 +27,14 @@ def test_option_equal():
     assert type(a) == type(b)
 
     assert a.NONE == b.NONE
-    # assert a.SOME(2) == b.SOME(2)
+    assert a.SOME(2) == b.SOME(2)
 
     x = a.SOME(2)
     y = b.SOME(3)
-    # eq = x == y
-    # assert not eq
+    eq = x == y
+    assert not eq
     assert x != y
 
-    # assert b.NONE != c.NONE
-    # assert b.SOME(1) != c.SOME(1)
-    # assert b.SOME(2) != c.SOME(1)
+    assert b.NONE != c.NONE
+    assert b.SOME(1) != c.SOME(1)
+    assert b.SOME(2) != c.SOME(1)
