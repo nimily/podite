@@ -1,5 +1,3 @@
-import _io
-
 from .atomic import U32
 from ..bytes import BYTES_CATALOG
 from .._utils import _GetitemToCall, get_concrete_type, get_calling_module
@@ -128,7 +126,7 @@ def _fixed_len_str(name, length, encoding="UTF-8", autopad=True):
             return encoded.decode(encoding)
 
         @classmethod
-        def _to_bytes_partial(cls, buffer: _io.BytesIO, obj):
+        def _to_bytes_partial(cls, buffer, obj):
             encoded = obj.encode(encoding)
             if len(encoded) > length:
                 raise ValueError("len(value) > length")

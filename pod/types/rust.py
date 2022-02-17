@@ -7,7 +7,6 @@ from ..decorators import pod
 
 
 def _option(_name, type_: Type):
-    print("Creating new option class ", type_)
     @pod
     class _Option(Enum):
         NONE = Variant()

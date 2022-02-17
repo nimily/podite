@@ -12,13 +12,13 @@ from typing import (
     get_origin,
 )
 
+from pod.json import JSON_CATALOG
 from pod.bytes import BYTES_CATALOG
 from pod.decorators import (
     POD_OPTIONS,
     POD_OPTIONS_OVERRIDE,
     POD_OPTIONS_DATACLASS_FN,
 )
-from pod.json import JSON_CATALOG
 from .atomic import U8
 from .. import pod
 from .._utils import resolve_name_mapping, get_calling_module, get_concrete_type
