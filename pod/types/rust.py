@@ -6,7 +6,6 @@ from .enum import Enum, Variant
 from ..decorators import pod
 
 
-@lru_cache(10000)
 def _option(_name, type_: Type):
     print("Creating new option class ", type_)
     @pod
