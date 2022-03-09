@@ -252,9 +252,9 @@ class Enum(int, Generic[TagType], metaclass=EnumMeta):  # type: ignore
 
     @classmethod
     def _to_bytes_partial(cls, _cls, buffer, instance, format=FORMAT_BORSCH, **kwargs):
-        if format==FORMAT_ZERO_COPY:
-            print("zero-copy")
-            static_to_bytes_partial(cls._inner_to_bytes_partial, cls, buffer, instance, format=format, **kwargs)
+        # if format==FORMAT_ZERO_COPY:
+        #     print("zero-copy")
+        #     static_to_bytes_partial(cls._inner_to_bytes_partial, cls, buffer, instance, format=format, **kwargs)
         cls._inner_to_bytes_partial(cls, buffer, instance, format=format, **kwargs)
 
     @classmethod
@@ -266,9 +266,9 @@ class Enum(int, Generic[TagType], metaclass=EnumMeta):  # type: ignore
 
     @classmethod
     def _from_bytes_partial(cls, buffer, format=FORMAT_BORSCH, **kwargs):
-        if format == FORMAT_ZERO_COPY:
-            print("zero-copy")
-            return static_from_bytes_partial(cls._inner_from_bytes_partial, cls, buffer, format=format, **kwargs)
+        # if format == FORMAT_ZERO_COPY:
+        #     print("zero-copy")
+        #     return static_from_bytes_partial(cls._inner_from_bytes_partial, cls, buffer, format=format, **kwargs)
         return cls._inner_from_bytes_partial(buffer, format=format, **kwargs)
 
     @classmethod
