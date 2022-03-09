@@ -251,18 +251,11 @@ class Enum(int, Generic[TagType], metaclass=EnumMeta):  # type: ignore
         return val_size + max_field_size
 
     @classmethod
-    def _to_bytes_partial(cls, _cls, buffer, instance, format=FORMAT_BORSCH, **kwargs):
+    def _to_bytes_partial(cls, buffer, instance, format=FORMAT_BORSCH, **kwargs):
         # if format==FORMAT_ZERO_COPY:
         #     print("zero-copy")
         #     static_to_bytes_partial(cls._inner_to_bytes_partial, cls, buffer, instance, format=format, **kwargs)
-        cls._inner_to_bytes_partial(cls, buffer, instance, format=format, **kwargs)
-
-    @classmethod
-    def _inner_to_bytes_partial(cls, buffer, instance, format=FORMAT_BORSCH, **kwargs):
-        BYTES_CATALOG.pack_partial(cls.get_tag_type(), buffer, instance, **kwargs)
-
-        variant: Variant = cls._get_variant(instance.get_name())
-        variant.to_bytes_partial(buffer, instance, format=format, **kwargs)
+        cls._inner_to_bytes_partial(buffer, instance, format=format, **kwargs)
 
     @classmethod
     def _from_bytes_partial(cls, buffer, format=FORMAT_BORSCH, **kwargs):
@@ -272,9 +265,18 @@ class Enum(int, Generic[TagType], metaclass=EnumMeta):  # type: ignore
         return cls._inner_from_bytes_partial(buffer, format=format, **kwargs)
 
     @classmethod
+    def _inner_to_bytes_partial(cls, buffer, instance, **kwargs):
+        BYTES_CATALOG.pack_partial(cls.get_tag_type(), buffer, instance, **kwargs)
+
+        variant: Variant = cls._get_variant(instance.get_name())
+        variant.to_bytes_partial(buffer, instance, **kwargs)
+
+    @classmethod
     def _inner_from_bytes_partial(cls, buffer, **kwargs):
         tag_type = cls.get_tag_type()
+        print("tag type", tag_type)
         tag = BYTES_CATALOG.unpack_partial(tag_type, buffer, **kwargs)
+        print("tag", tag)
 
         instance = cls(tag)
         variant = cls._get_variant(instance.get_name())

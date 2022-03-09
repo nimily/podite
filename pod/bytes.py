@@ -193,6 +193,7 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         return obj
 
     def unpack_partial(self, type_, buffer, format=FORMAT_AUTO, **kwargs) -> Tuple[bool, object]:
+        print(self, type_, buffer)
         error_msg = "No converter was able to unpack object"
         converter = self._get_converter_or_raise(type_, error_msg)
 

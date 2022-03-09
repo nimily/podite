@@ -1,4 +1,4 @@
-from pod import pod, U16, U32, Option, Static, Enum, Variant, Default, field
+from pod import pod, U16, U32, Option, Static, Enum, Variant, Default, field, U8
 
 
 def test_bytes_static_option():
@@ -44,7 +44,7 @@ class Element:
 
 def test_bytes_static_enum():
     @pod
-    class A(Enum):
+    class A(Enum[U8]):
         X = Variant(3)
         Y = Variant(field=U32)
         Z = Variant(8, field=U16)
@@ -65,7 +65,7 @@ def test_bytes_static_enum():
 
 def test_json_static_enum():
     @pod
-    class A(Enum):
+    class A(Enum[U8]):
         X = Variant(3)
         Y = Variant(field=U32)
         Z = Variant(8, field=U16)

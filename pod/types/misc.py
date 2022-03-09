@@ -65,12 +65,13 @@ def _static(name, type_: Type, length="auto"):
         @classmethod
         def _to_bytes_partial(cls, buffer, obj, **kwargs):
             static_to_bytes_partial(
-                partial(BYTES_CATALOG.pack_partial, (get_concrete_type(module, type_))), cls, buffer, obj,
+                partial(BYTES_CATALOG.pack_partial, get_concrete_type(module, type_)), cls, buffer, obj,
                 **kwargs)
 
+        @classmethod
         def _from_bytes_partial(cls, buffer, **kwargs):
-            return static_from_bytes_partial(
-                partial(BYTES_CATALOG.unpack_partial, (get_concrete_type(module, type_))), cls, buffer, **kwargs)
+            f = partial(BYTES_CATALOG.unpack_partial, get_concrete_type(module, type_))
+            return static_from_bytes_partial(f, cls, buffer, **kwargs)
 
         @classmethod
         def _to_dict(cls, obj):

@@ -98,7 +98,7 @@ def test_bytes_enum_with_auto_tag_type():
     assert A.calc_max_size() == 8+2
     print("99")
 
-    assert A.to_bytes(A.X, format=FORMAT_ZERO_COPY) == b"\x03\x00\x00\x00\x00\x00"
+    assert A.to_bytes(A.X, format=FORMAT_ZERO_COPY) == b"\x03".ljust(8+2, b"\x00")
     assert A.to_bytes(A.Y, format=FORMAT_ZERO_COPY) == b"\x04\x00\x00\x00\x00\x00"
     assert A.to_bytes(A.Z(7), format=FORMAT_ZERO_COPY) == b"\x08\x00\x00\x00\x07\x00"
 
