@@ -158,40 +158,37 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         return converter.calc_max_size(type_)
 
     def pack(self, type_, obj, format=FORMAT_BORSCH, **kwargs):
-        buffer = BytesIO()
-        self.pack_partial(type_, buffer, obj, format=format, **kwargs)
-
-        return buffer.getvalue()
-
-    def pack_partial(self, type_, buffer, obj, format=FORMAT_BORSCH, **kwargs):
         from pod.types import U8, U64
+
+        buffer = BytesIO()
         error_msg = "No converter was able to pack raw data"
         converter = self._get_converter_or_raise(type_, error_msg)
+
         if format == FORMAT_BORSCH:
             tag_type = U8
         elif format == FORMAT_PASS:
-            return converter.pack_partial(type_, buffer, obj, format=format, **kwargs)
+            return self.pack_partial(type_, buffer, obj, format=format, **kwargs)
         elif format == FORMAT_ZERO_COPY:
             tag_type = U64
         else:
             raise ValueError(f'Format argument must be {FORMAT_AUTO}, {FORMAT_BORSCH}, or {FORMAT_ZERO_COPY}, found {format}')
 
         with AutoTagTypeValueManager(tag_type):
-            return converter.pack_partial(type_, buffer, obj, format=format, **kwargs)
+            self.pack_partial(type_, buffer, obj, format=format, **kwargs)
+
+        return buffer.getvalue()
+
+    def pack_partial(self, type_, buffer, obj, format=FORMAT_BORSCH, **kwargs):
+        error_msg = "No converter was able to pack raw data"
+        converter = self._get_converter_or_raise(type_, error_msg)
+
+        return converter.pack_partial(type_, buffer, obj, format=format, **kwargs)
 
     def unpack(self, type_, raw, checked=False, format=FORMAT_AUTO, **kwargs) -> object:
         buffer = BytesIO(raw)
-        obj = self.unpack_partial(type_, buffer, format=format, **kwargs)
 
-        if checked and buffer.tell() < len(buffer.getvalue()):
-            raise RuntimeError("Unused bytes in provided raw data")
-
-        return obj
-
-    def unpack_partial(self, type_, buffer, format=FORMAT_AUTO, **kwargs) -> Tuple[bool, object]:
         error_msg = "No converter was able to unpack object"
         converter = self._get_converter_or_raise(type_, error_msg)
-
         if format == FORMAT_AUTO:
             from pod.types import U64
             with AutoTagTypeValueManager(U64):
@@ -215,7 +212,17 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
             raise ValueError(f'Format argument must be {FORMAT_AUTO}, {FORMAT_BORSCH}, or {FORMAT_ZERO_COPY}, found {format}')
 
         with AutoTagTypeValueManager(tag_type):
-            return converter.unpack_partial(type_, buffer, format=format, **kwargs)
+            obj = self.unpack_partial(type_, buffer, format=format, **kwargs)
+
+        if checked and buffer.tell() < len(buffer.getvalue()):
+            raise RuntimeError("Unused bytes in provided raw data")
+
+        return obj
+
+    def unpack_partial(self, type_, buffer, format=FORMAT_AUTO, **kwargs) -> Tuple[bool, object]:
+        error_msg = "No converter was able to unpack object"
+        converter = self._get_converter_or_raise(type_, error_msg)
+        return converter.unpack_partial(type_, buffer, format=format, **kwargs)
 
     def generate_helpers(self, type_) -> Dict[str, classmethod]:
         helpers = super().generate_helpers(type_)
