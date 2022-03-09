@@ -1,6 +1,10 @@
 import inspect
 from functools import lru_cache
 
+FORMAT_AUTO = "FORMAT_AUTO"  # attempt to determine format
+FORMAT_PASS = "FORMAT_PASS"  # rely on previously set AutoTagTypeValue
+FORMAT_ZERO_COPY = "FORMAT_ZERO_COPY"  # use rust's in-memory format
+FORMAT_BORSCH = "FORMAT_BORSCH"  # use borsch format
 
 class _GetitemToCall:
     def __init__(self, name, func):

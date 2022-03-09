@@ -1,4 +1,3 @@
-from _io import BytesIO
 from dataclasses import dataclass
 from enum import _is_sunder, _is_dunder, _is_descriptor  # type: ignore
 from typing import (
@@ -22,7 +21,8 @@ from pod.decorators import (
 )
 from .atomic import U8
 from .. import pod
-from .._utils import resolve_name_mapping, get_calling_module, get_concrete_type
+from .._utils import resolve_name_mapping, get_calling_module, get_concrete_type, FORMAT_BORSCH, FORMAT_ZERO_COPY
+from .misc import static_from_bytes_partial, static_to_bytes_partial
 
 _VALUES_TO_NAMES = "__enum_values_to_names__"
 _NAMES_TO_VARIANTS = "__enum_names_to_variants__"
@@ -136,15 +136,15 @@ class Variant:
         else:
             self.value = prev_value + 1
 
-    def to_bytes_partial(self, buffer, obj):
+    def to_bytes_partial(self, buffer, obj, **kwargs):
         # Notice that tag value is already serialized
         if self.field is not None:
-            BYTES_CATALOG.pack_partial(self.concrete_field_type, buffer, obj.field)
+            BYTES_CATALOG.pack_partial(self.concrete_field_type, buffer, obj.field, **kwargs)
 
-    def from_bytes_partial(self, buffer, instance):
-        # Notice is that tag value is already deserialized
+    def from_bytes_partial(self, buffer, instance, **kwargs):
+        # Notice that tag value is already deserialized
         if self.field is not None:
-            field = BYTES_CATALOG.unpack_partial(self.concrete_field_type, buffer)
+            field = BYTES_CATALOG.unpack_partial(self.concrete_field_type, buffer, **kwargs)
             instance = instance(field)
 
         return instance
@@ -246,26 +246,39 @@ class Enum(int, Generic[TagType], metaclass=EnumMeta):  # type: ignore
                 variant_size = 0
             else:
                 variant_size = BYTES_CATALOG.calc_max_size(variant.concrete_field_type)
-
             max_field_size = max(max_field_size, variant_size)
 
         return val_size + max_field_size
 
     @classmethod
-    def _to_bytes_partial(cls, buffer, instance):
-        BYTES_CATALOG.pack_partial(cls.get_tag_type(), buffer, instance)
-
-        variant: Variant = cls._get_variant(instance.get_name())
-        variant.to_bytes_partial(buffer, instance)
+    def _to_bytes_partial(cls, _cls, buffer, instance, format=FORMAT_BORSCH, **kwargs):
+        if format==FORMAT_ZERO_COPY:
+            print("zero-copy")
+            static_to_bytes_partial(cls._inner_to_bytes_partial, cls, buffer, instance, format=format, **kwargs)
+        cls._inner_to_bytes_partial(cls, buffer, instance, format=format, **kwargs)
 
     @classmethod
-    def _from_bytes_partial(cls, buffer):
+    def _inner_to_bytes_partial(cls, buffer, instance, format=FORMAT_BORSCH, **kwargs):
+        BYTES_CATALOG.pack_partial(cls.get_tag_type(), buffer, instance, **kwargs)
+
+        variant: Variant = cls._get_variant(instance.get_name())
+        variant.to_bytes_partial(buffer, instance, format=format, **kwargs)
+
+    @classmethod
+    def _from_bytes_partial(cls, buffer, format=FORMAT_BORSCH, **kwargs):
+        if format == FORMAT_ZERO_COPY:
+            print("zero-copy")
+            return static_from_bytes_partial(cls._inner_from_bytes_partial, cls, buffer, format=format, **kwargs)
+        return cls._inner_from_bytes_partial(buffer, format=format, **kwargs)
+
+    @classmethod
+    def _inner_from_bytes_partial(cls, buffer, **kwargs):
         tag_type = cls.get_tag_type()
-        tag = BYTES_CATALOG.unpack_partial(tag_type, buffer)
+        tag = BYTES_CATALOG.unpack_partial(tag_type, buffer, **kwargs)
 
         instance = cls(tag)
         variant = cls._get_variant(instance.get_name())
-        return variant.from_bytes_partial(buffer, instance)
+        return variant.from_bytes_partial(buffer, instance, **kwargs)
 
     @classmethod
     def _transform_name(cls, name):

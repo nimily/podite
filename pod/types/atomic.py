@@ -3,13 +3,13 @@ import struct
 from io import BytesIO
 from typing import Literal
 
-from ..decorators import pod
+import pod.decorators as decorators
 
 _BYTEORDER: Literal["little", "big"] = "little"
 
 
 def new_atomic_type(name: str, base: type, code: str, unpacker, packer=lambda x: x):
-    @pod(override=("from_bytes", "to_bytes"), dataclass_fn=None)
+    @decorators.pod(override=("from_bytes", "to_bytes"), dataclass_fn=None)
     class Atom(base):  # type: ignore
         @classmethod
         def _get_code(cls):
@@ -25,12 +25,12 @@ def new_atomic_type(name: str, base: type, code: str, unpacker, packer=lambda x:
             return struct.calcsize(cls._get_code())
 
         @classmethod
-        def _to_bytes_partial(cls, buffer, obj):
+        def _to_bytes_partial(cls, buffer, obj, **kwargs):
             obj = packer(obj)
             buffer.write(struct.pack(cls._get_code(), obj))
 
         @classmethod
-        def _from_bytes_partial(cls, buffer: BytesIO):
+        def _from_bytes_partial(cls, buffer: BytesIO, **kwargs):
             size = cls._calc_max_size()
             encoded = buffer.read(size)
             decoded, *_ = struct.unpack(cls._get_code(), encoded)

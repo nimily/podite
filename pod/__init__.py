@@ -59,6 +59,10 @@ from .bytes import (
     dataclass_to_bytes_partial,
     dataclass_from_bytes_partial,
     BYTES_CATALOG,
+    AutoTagTypeValueManager,
+    AutoTagType,
 )
 from .errors import PodPathError
 from .json import JSON_CATALOG
+
+AutoTagType.TAG_TYPE[0] = U64

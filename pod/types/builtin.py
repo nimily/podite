@@ -70,7 +70,7 @@ class OptionalConverter(BytesPodConverter, JsonPodConverter):
             buffer.write(b"\x01")
 
             field_type = self.get_field_type(type_)
-            BYTES_CATALOG.pack_partial(field_type, buffer, obj)
+            BYTES_CATALOG.pack_partial(field_type, buffer, obj, **kwargs)
 
     def unpack_partial(self, type_, buffer, **kwargs):
         b = buffer.read(1)
@@ -84,7 +84,7 @@ class OptionalConverter(BytesPodConverter, JsonPodConverter):
             return None
 
         field_type = self.get_field_type(type_)
-        return BYTES_CATALOG.unpack_partial(field_type, buffer)
+        return BYTES_CATALOG.unpack_partial(field_type, buffer, **kwargs)
 
     def pack_dict(self, type_, obj, **kwargs) -> Any:
         if obj is None:
@@ -129,7 +129,7 @@ class TupleConverter(BytesPodConverter, JsonPodConverter):
             raise ValueError(f"Tuple should have exactly {len(fields_types)} elements")
 
         for e, t in zip(obj, fields_types):
-            BYTES_CATALOG.pack_partial(t, buffer, e)
+            BYTES_CATALOG.pack_partial(t, buffer, e, **kwargs)
 
     def unpack_partial(self, type_, buffer, **kwargs):
         fields_types = get_args(type_)

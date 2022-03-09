@@ -1,11 +1,49 @@
-import inspect
+from functools import partial
 from io import BytesIO
 from typing import Type
 
 from pod._utils import _GetitemToCall, get_calling_module, get_concrete_type
 from ..bytes import BYTES_CATALOG
-from ..json import JSON_CATALOG, MISSING
 from ..decorators import pod
+from ..json import JSON_CATALOG, MISSING
+
+
+def static_to_bytes_partial(packer, cls, buffer, obj, **kwargs):
+    before = buffer.tell()
+    print("packing")
+    packer(buffer, obj, **kwargs)
+    after = buffer.tell()
+
+    delta = after - before
+    max_length = cls._calc_max_size()
+    if delta > max_length:
+        raise RuntimeError(
+            f"The underlying type has consumed {delta} bytes > length ({max_length})"
+        )
+
+    if delta < max_length:
+        buffer.write(bytes(max_length - delta))
+
+
+def static_from_bytes_partial(unpacker, cls, buffer, **kwargs):
+    before = buffer.tell()
+    print("unpacking")
+    obj = unpacker(buffer, **kwargs)
+    after = buffer.tell()
+
+    delta = after - before
+    max_length = cls._calc_max_size()
+    if delta > max_length:
+        raise RuntimeError(
+            f"The underlying type has consumed {delta} bytes > length ({max_length})"
+        )
+
+    if delta < max_length:
+        required = max_length - delta
+        if len(buffer.read(required)) < required:
+            raise RuntimeError("Bytes object was too small.")
+
+    return obj
 
 
 def _static(name, type_: Type, length="auto"):
@@ -25,42 +63,14 @@ def _static(name, type_: Type, length="auto"):
                 return length
 
         @classmethod
-        def _to_bytes_partial(cls, buffer, obj):
-            before = buffer.tell()
-            BYTES_CATALOG.pack_partial(get_concrete_type(module, type_), buffer, obj)
-            after = buffer.tell()
+        def _to_bytes_partial(cls, buffer, obj, **kwargs):
+            static_to_bytes_partial(
+                partial(BYTES_CATALOG.pack_partial, (get_concrete_type(module, type_))), cls, buffer, obj,
+                **kwargs)
 
-            delta = after - before
-            max_length = cls._calc_max_size()
-            if delta > max_length:
-                raise RuntimeError(
-                    f"The underlying type has consumed {delta} bytes > length ({max_length})"
-                )
-
-            if delta < max_length:
-                buffer.write(bytes(max_length - delta))
-
-        @classmethod
-        def _from_bytes_partial(cls, buffer: BytesIO):
-            before = buffer.tell()
-            obj = BYTES_CATALOG.unpack_partial(
-                get_concrete_type(module, type_), buffer
-            )
-            after = buffer.tell()
-
-            delta = after - before
-            max_length = cls._calc_max_size()
-            if delta > max_length:
-                raise RuntimeError(
-                    f"The underlying type has consumed {delta} bytes > length ({max_length})"
-                )
-
-            if delta < max_length:
-                required = max_length - delta
-                if len(buffer.read(required)) < required:
-                    raise RuntimeError("Bytes object was too small.")
-
-            return obj
+        def _from_bytes_partial(cls, buffer, **kwargs):
+            return static_from_bytes_partial(
+                partial(BYTES_CATALOG.unpack_partial, (get_concrete_type(module, type_))), cls, buffer, **kwargs)
 
         @classmethod
         def _to_dict(cls, obj):
@@ -93,15 +103,15 @@ def _default(name, type_: Type, default=None):
             return BYTES_CATALOG.calc_max_size(get_concrete_type(module, type_))
 
         @classmethod
-        def _to_bytes_partial(cls, buffer, obj):
+        def _to_bytes_partial(cls, buffer, obj, **kwargs):
             return BYTES_CATALOG.pack_partial(
-                get_concrete_type(module, type_), buffer, obj
+                get_concrete_type(module, type_), buffer, obj, **kwargs
             )
 
         @classmethod
-        def _from_bytes_partial(cls, buffer: BytesIO):
+        def _from_bytes_partial(cls, buffer: BytesIO, **kwargs):
             return BYTES_CATALOG.unpack_partial(
-                get_concrete_type(module, type_), buffer
+                get_concrete_type(module, type_), buffer, **kwargs
             )
 
         @classmethod
@@ -152,12 +162,12 @@ def _forward_ref(name, type_expr):
             return BYTES_CATALOG.calc_max_size(cls.get_type())
 
         @classmethod
-        def _to_bytes_partial(cls, buffer, obj):
-            return BYTES_CATALOG.pack_partial(cls.get_type(), buffer, obj)
+        def _to_bytes_partial(cls, buffer, obj, **kwargs):
+            return BYTES_CATALOG.pack_partial(cls.get_type(), buffer, obj, **kwargs)
 
         @classmethod
-        def _from_bytes_partial(cls, buffer: BytesIO):
-            return BYTES_CATALOG.unpack_partial(cls.get_type(), buffer)
+        def _from_bytes_partial(cls, buffer: BytesIO, **kwargs):
+            return BYTES_CATALOG.unpack_partial(cls.get_type(), buffer, **kwargs)
 
         @classmethod
         def _to_dict(cls, obj):
