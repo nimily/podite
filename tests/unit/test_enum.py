@@ -58,9 +58,6 @@ def test_bytes_enum_with_tag_type():
         Y = Variant()
         Z = Variant(8, field=U16)
 
-    # import pdb
-    # pdb.set_trace()
-
     assert not A.is_static()
     assert A.calc_max_size() == 4
 
@@ -82,7 +79,7 @@ def test_bytes_enum_with_auto_tag_type():
 
     # borsch
     assert not A.is_static()
-    assert A.calc_max_size() == 8+2  # U64 + U16
+    assert A.calc_max_size() == 10  # U64 + U16
 
     assert A.to_bytes(A.X) == b"\x03"
     assert A.to_bytes(A.Y) == b"\x04"
@@ -94,7 +91,7 @@ def test_bytes_enum_with_auto_tag_type():
 
     # zero-copy
     assert not A.is_static()
-    assert A.calc_max_size() == 8 + 2
+    assert A.calc_max_size() == 10
 
     assert A.to_bytes(A.X, format=FORMAT_ZERO_COPY) == b"\x03".ljust(8 + 2, b"\x00")
     assert A.to_bytes(A.Y, format=FORMAT_ZERO_COPY) == b"\x04".ljust(10, b"\x00")
@@ -102,11 +99,11 @@ def test_bytes_enum_with_auto_tag_type():
 
     assert A.X == A.from_bytes(b"\x03".ljust(10, b"\x00"))
     assert A.Y == A.from_bytes(b"\x04".ljust(10, b"\x00"))
-    assert A.Z(7) == A.from_bytes(b"\x08".ljust(8, b"\x00") + b"\x07\x00", format=FORMAT_ZERO_COPY)
+    assert A.Z(7) == A.from_bytes(b"\x08".ljust(8, b"\x00") + b"\x07\x00")
 
     # borsch
     assert not A.is_static()
-    assert A.calc_max_size() == 8 + 2
+    assert A.calc_max_size() == 10
 
     assert A.to_bytes(A.X) == b"\x03"
     assert A.to_bytes(A.Y) == b"\x04"
