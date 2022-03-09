@@ -117,14 +117,10 @@ class AutoTagType:
 
     @classmethod
     def _calc_max_size(cls):
-        ty = AutoTagType.TAG_TYPE[0]
-        print("_calc_max_size", ty)
-        val_size = BYTES_CATALOG.calc_max_size(ty)
-        return val_size
+        return BYTES_CATALOG.calc_max_size(AutoTagType.TAG_TYPE[0])
 
     @classmethod
     def _to_bytes_partial(cls, buffer, obj, **kwargs):
-        print("_to_bytes_partial")
         BYTES_CATALOG.pack_partial(AutoTagType.TAG_TYPE[0], buffer, obj, **kwargs)
 
     @classmethod
@@ -193,7 +189,6 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         return obj
 
     def unpack_partial(self, type_, buffer, format=FORMAT_AUTO, **kwargs) -> Tuple[bool, object]:
-        print(self, type_, buffer)
         error_msg = "No converter was able to unpack object"
         converter = self._get_converter_or_raise(type_, error_msg)
 
@@ -241,7 +236,6 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
             return cls.pack(obj, converter="bytes", **kwargs)
 
         def from_bytes(cls, raw, format=FORMAT_AUTO, **kwargs):
-            print("in from_bytes")
             return cls.unpack(raw, converter="bytes", format=format, **kwargs)
 
         helpers.update(

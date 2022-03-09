@@ -10,7 +10,6 @@ from ..json import JSON_CATALOG, MISSING
 
 def static_to_bytes_partial(packer, cls, buffer, obj, **kwargs):
     before = buffer.tell()
-    print("packing")
     packer(buffer, obj, **kwargs)
     after = buffer.tell()
 
@@ -27,7 +26,6 @@ def static_to_bytes_partial(packer, cls, buffer, obj, **kwargs):
 
 def static_from_bytes_partial(unpacker, cls, buffer, **kwargs):
     before = buffer.tell()
-    print("unpacking")
     obj = unpacker(buffer, **kwargs)
     after = buffer.tell()
 
