@@ -12,6 +12,14 @@ class BytesPodConverter(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def calc_size(self, type_, obj, **kwargs) -> int:
+        """
+        Returns the current size of the type. This is equal to the max size when no variable length types are present
+        Note: set AutoTagType value using AutoTagTypeValueManager for the format you want the size for
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def calc_max_size(self, type_) -> int:
         """
         Returns the maximum size of the type.
@@ -29,6 +37,7 @@ class BytesPodConverter(ABC):
 
 
 IS_STATIC = "_is_static"
+CALC_SIZE = "_calc_size"
 CALC_MAX_SIZE = "_calc_max_size"
 TO_BYTES_PARTIAL = "_to_bytes_partial"
 FROM_BYTES_PARTIAL = "_from_bytes_partial"
@@ -39,6 +48,14 @@ def dataclass_is_static(cls) -> bool:
         if not BYTES_CATALOG.is_static(cls._get_field_type(field.type)):
             return False
     return True
+
+
+def dataclass_calc_size(cls, obj):
+    total = 0
+    for field in fields(cls):
+        total += BYTES_CATALOG.calc_size(cls._get_field_type(field.type), getattr(obj, field.name))
+
+    return total
 
 
 def dataclass_calc_max_size(cls):
@@ -89,6 +106,9 @@ class SelfBytesPodConverter(BytesPodConverter):
     def is_static(self, type_) -> bool:
         return getattr(type_, IS_STATIC)()
 
+    def calc_size(self, type_, obj, **kwargs) -> int:
+        return getattr(type_, CALC_SIZE)(obj, **kwargs)
+
     def calc_max_size(self, type_) -> int:
         return getattr(type_, CALC_MAX_SIZE)()
 
@@ -115,6 +135,15 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         error_msg = f"No converter was able to calculate maximum size of type {type_}"
         converter = self._get_converter_or_raise(type_, error_msg)
         return converter.calc_max_size(type_)
+
+    def calc_size(self, type_, obj=None, format=FORMAT_BORSCH, **kwargs):
+        # zero-copy format does not support dynamic sizes
+        if obj is None or format == FORMAT_ZERO_COPY:
+            return self.calc_max_size(type_)
+
+        error_msg = f"No converter was able to calculate size of type {type_}"
+        converter = self._get_converter_or_raise(type_, error_msg)
+        return converter.calc_size(type_, obj, **kwargs)
 
     def pack(self, type_, obj, format=FORMAT_BORSCH, **kwargs):
         buffer = BytesIO()
@@ -179,11 +208,15 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         def calc_max_size(cls):
             return BYTES_CATALOG.calc_max_size(cls)
 
-        def calc_size(cls):
-            if not cls.is_static():
-                raise RuntimeError("calc_size can only be called for static classes")
-
-            return cls.calc_max_size()
+        def calc_size(cls, obj=None, format=FORMAT_BORSCH, **kwargs):
+            if obj is None or format == FORMAT_ZERO_COPY:
+                if not cls.is_static():
+                    raise RuntimeError("calc_size can only be called for static classes")
+                return cls.calc_max_size()
+            if format == FORMAT_BORSCH:
+                with AutoTagTypeValueManager(FORMAT_TO_TYPE[FORMAT_BORSCH]):
+                    return BYTES_CATALOG.calc_size(cls, obj, format=format, **kwargs)
+            return BYTES_CATALOG.calc_size(cls, obj, format=format, **kwargs)
 
         def to_bytes(cls, obj, **kwargs):
             return cls.pack(obj, converter="bytes", **kwargs)
@@ -211,6 +244,7 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         return {
             IS_STATIC: classmethod(dataclass_is_static),
             CALC_MAX_SIZE: classmethod(dataclass_calc_max_size),
+            CALC_SIZE: classmethod(dataclass_calc_size),
             TO_BYTES_PARTIAL: classmethod(dataclass_to_bytes_partial),
             FROM_BYTES_PARTIAL: classmethod(dataclass_from_bytes_partial),
         }

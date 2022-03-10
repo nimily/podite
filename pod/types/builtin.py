@@ -16,6 +16,9 @@ class BoolConverter(BytesPodConverter, JsonPodConverter):
     def is_static(self, type_) -> bool:
         return True
 
+    def calc_size(self, type_, **kwargs) -> int:
+        return 1
+
     def calc_max_size(self, type_) -> int:
         return 1
 
@@ -48,6 +51,9 @@ class StrConverter(BytesPodConverter, JsonPodConverter):
 
     def is_static(self, type_) -> bool:
         return False
+
+    def calc_size(self, type_, obj, **kwargs) -> int:
+        return 8 + len(obj)
 
     def calc_max_size(self, type_) -> int:
         return 2 ** 64 + 8
@@ -89,6 +95,10 @@ class OptionalConverter(BytesPodConverter, JsonPodConverter):
 
     def is_static(self, type_) -> bool:
         return False
+
+    def calc_size(self, type_, obj, **kwargs) -> int:
+        field_type = self.get_field_type(type_)
+        return 1 + BYTES_CATALOG.calc_size(field_type)
 
     def calc_max_size(self, type_) -> int:
         field_type = self.get_field_type(type_)
@@ -141,6 +151,13 @@ class TupleConverter(BytesPodConverter, JsonPodConverter):
             if not catalog.is_static(arg):
                 return False
         return True
+
+    def calc_size(self, type_, obj, **kwargs) -> int:
+        total = 0
+        for obj,arg_type in zip(obj, get_args(type_)):
+            total += BYTES_CATALOG.calc_size(arg_type, obj, **kwargs)
+
+        return total
 
     def calc_max_size(self, type_) -> int:
         catalog = BYTES_CATALOG

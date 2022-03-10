@@ -22,6 +22,10 @@ def new_atomic_type(name: str, base: type, code: str, unpacker, packer=lambda x:
             return True
 
         @classmethod
+        def _calc_size(cls, obj, **kwargs):
+            return struct.calcsize(cls._get_code())
+
+        @classmethod
         def _calc_max_size(cls):
             return struct.calcsize(cls._get_code())
 
