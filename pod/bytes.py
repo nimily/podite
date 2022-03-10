@@ -117,8 +117,6 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         return converter.calc_max_size(type_)
 
     def pack(self, type_, obj, format=FORMAT_BORSCH, **kwargs):
-        from pod.types import U8, U64
-
         buffer = BytesIO()
         error_msg = "No converter was able to pack raw data"
         converter = self._get_converter_or_raise(type_, error_msg)
@@ -145,8 +143,7 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         error_msg = "No converter was able to unpack object"
         converter = self._get_converter_or_raise(type_, error_msg)
         if format == FORMAT_AUTO:
-            from pod.types import U64
-            with AutoTagTypeValueManager(U64):
+            with AutoTagTypeValueManager(FORMAT_TO_TYPE[FORMAT_ZERO_COPY]):
                 pos = buffer.tell()
                 buffer.seek(0, 2)
                 if converter.calc_max_size(type_) == buffer.tell():
@@ -155,19 +152,13 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
                     format = FORMAT_BORSCH
                 buffer.seek(pos)
 
-        if format == FORMAT_BORSCH:
-            from pod.types import U8
-            tag_type = U8
-        elif format == FORMAT_ZERO_COPY:
-            from pod.types import U64
-            tag_type = U64
+        if format in FORMAT_TO_TYPE:
+            with AutoTagTypeValueManager(FORMAT_TO_TYPE[format]):
+                obj = self.unpack_partial(type_, buffer, format=format, **kwargs)
         elif format == FORMAT_PASS:
-            return converter.unpack_partial(type_, buffer, format=format, **kwargs)
+            obj = converter.unpack_partial(type_, buffer, format=format, **kwargs)
         else:
             raise ValueError(f'Format argument must be {FORMAT_AUTO}, {FORMAT_BORSCH}, or {FORMAT_ZERO_COPY}, found {format}')
-
-        with AutoTagTypeValueManager(tag_type):
-            obj = self.unpack_partial(type_, buffer, format=format, **kwargs)
 
         if checked and buffer.tell() < len(buffer.getvalue()):
             raise RuntimeError("Unused bytes in provided raw data")
