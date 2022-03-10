@@ -4,7 +4,7 @@ from io import BytesIO
 from typing import Tuple, Dict, Any, Literal
 from .errors import PodPathError
 from .core import PodConverterCatalog, POD_SELF_CONVERTER
-from ._utils import FORMAT_BORSCH, FORMAT_PASS, FORMAT_AUTO, FORMAT_ZERO_COPY
+from ._utils import FORMAT_BORSCH, FORMAT_PASS, FORMAT_AUTO, FORMAT_ZERO_COPY, FORMAT_TO_TYPE, AutoTagTypeValueManager
 
 class BytesPodConverter(ABC):
     @abstractmethod
@@ -13,6 +13,10 @@ class BytesPodConverter(ABC):
 
     @abstractmethod
     def calc_max_size(self, type_) -> int:
+        """
+        Returns the maximum size of the type.
+        Note: set AutoTagType value using AutoTagTypeValueManager for the format you want the size for
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -95,51 +99,6 @@ class SelfBytesPodConverter(BytesPodConverter):
         return getattr(type_, FROM_BYTES_PARTIAL)(buffer, **kwargs)
 
 
-class AutoTagTypeValueManager:
-    def __init__(self, tag_type):
-        self._tag_type = tag_type
-
-    def __enter__(self):
-        self.old = AutoTagType.TAG_TYPE[0]
-        AutoTagType.TAG_TYPE[0] = self._tag_type
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        AutoTagType.TAG_TYPE[0] = self.old
-
-
-@dataclass(init=False)
-class AutoTagType:
-    TAG_TYPE = [None]  # mutable static var
-
-    @classmethod
-    def _is_static(cls) -> bool:
-        return False
-
-    @classmethod
-    def _calc_max_size(cls):
-        return BYTES_CATALOG.calc_max_size(AutoTagType.TAG_TYPE[0])
-
-    @classmethod
-    def _to_bytes_partial(cls, buffer, obj, **kwargs):
-        BYTES_CATALOG.pack_partial(AutoTagType.TAG_TYPE[0], buffer, obj, **kwargs)
-
-    @classmethod
-    def _from_bytes_partial(cls, buffer: BytesIO, **kwargs):
-        return BYTES_CATALOG.unpack_partial(AutoTagType.TAG_TYPE[0], buffer, **kwargs)
-
-    @classmethod
-    def _to_dict(cls, obj):
-        return obj
-
-    @classmethod
-    def _from_dict(cls, obj):
-        return obj
-
-
-# register that AutoTagType knows how to convert itself to bytes
-setattr(AutoTagType, POD_SELF_CONVERTER, ["bytes"])
-
-
 class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
     def is_static(self, type_):
         """
@@ -164,17 +123,13 @@ class BytesPodConverterCatalog(PodConverterCatalog[BytesPodConverter]):
         error_msg = "No converter was able to pack raw data"
         converter = self._get_converter_or_raise(type_, error_msg)
 
-        if format == FORMAT_BORSCH:
-            tag_type = U8
+        if format in FORMAT_TO_TYPE:
+            with AutoTagTypeValueManager(FORMAT_TO_TYPE[format]):
+                self.pack_partial(type_, buffer, obj, format=format, **kwargs)
         elif format == FORMAT_PASS:
-            return self.pack_partial(type_, buffer, obj, format=format, **kwargs)
-        elif format == FORMAT_ZERO_COPY:
-            tag_type = U64
+            self.pack_partial(type_, buffer, obj, format=format, **kwargs)
         else:
             raise ValueError(f'Format argument must be {FORMAT_AUTO}, {FORMAT_BORSCH}, or {FORMAT_ZERO_COPY}, found {format}')
-
-        with AutoTagTypeValueManager(tag_type):
-            self.pack_partial(type_, buffer, obj, format=format, **kwargs)
 
         return buffer.getvalue()
 

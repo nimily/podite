@@ -1,6 +1,6 @@
-from io import BytesIO
 from dataclasses import dataclass
 from enum import _is_sunder, _is_dunder, _is_descriptor  # type: ignore
+from io import BytesIO
 from typing import (
     Optional,
     Type,
@@ -13,17 +13,18 @@ from typing import (
     get_origin,
 )
 
-from pod.json import JSON_CATALOG
 from pod.bytes import BYTES_CATALOG
+from pod.core import POD_SELF_CONVERTER
 from pod.decorators import (
     POD_OPTIONS,
     POD_OPTIONS_OVERRIDE,
     POD_OPTIONS_DATACLASS_FN,
 )
+from pod.json import JSON_CATALOG
 from .atomic import U8
-from .. import pod
-from .._utils import resolve_name_mapping, get_calling_module, get_concrete_type, FORMAT_BORSCH, FORMAT_ZERO_COPY
 from .misc import static_from_bytes_partial, static_to_bytes_partial
+from .. import pod
+from .._utils import resolve_name_mapping, get_calling_module, get_concrete_type, FORMAT_BORSCH, FORMAT_ZERO_COPY, AutoTagTypeValueManager, FORMAT_TO_TYPE
 
 _VALUES_TO_NAMES = "__enum_values_to_names__"
 _NAMES_TO_VARIANTS = "__enum_names_to_variants__"
@@ -253,7 +254,7 @@ class Enum(int, Generic[TagType], metaclass=EnumMeta):  # type: ignore
 
     @classmethod
     def _to_bytes_partial(cls, buffer, instance, format=FORMAT_BORSCH, **kwargs):
-        if format==FORMAT_ZERO_COPY:
+        if format == FORMAT_ZERO_COPY:
             static_to_bytes_partial(cls._inner_to_bytes_partial, cls, buffer, instance, format=format, **kwargs)
             return
         cls._inner_to_bytes_partial(buffer, instance, format=format, **kwargs)
@@ -403,3 +404,35 @@ def named_fields(**kwargs):
     cls._to_dict = lambda obj: to_dict(cls(*obj))
 
     return cls
+
+
+@dataclass(init=False)
+class AutoTagType:
+
+    @classmethod
+    def _is_static(cls) -> bool:
+        return False
+
+    @classmethod
+    def _calc_max_size(cls):
+        return BYTES_CATALOG.calc_max_size(AutoTagTypeValueManager.get_tag())
+
+    @classmethod
+    def _to_bytes_partial(cls, buffer, obj, **kwargs):
+        BYTES_CATALOG.pack_partial(AutoTagTypeValueManager.get_tag(), buffer, obj, **kwargs)
+
+    @classmethod
+    def _from_bytes_partial(cls, buffer: BytesIO, **kwargs):
+        return BYTES_CATALOG.unpack_partial(AutoTagTypeValueManager.get_tag(), buffer, **kwargs)
+
+    @classmethod
+    def _to_dict(cls, obj):
+        return obj
+
+    @classmethod
+    def _from_dict(cls, obj):
+        return obj
+
+
+# register that AutoTagType knows how to convert itself to bytes
+setattr(AutoTagType, POD_SELF_CONVERTER, ["bytes"])

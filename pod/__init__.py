@@ -52,6 +52,7 @@ from .types import (
     Static,
     Default,
     ForwardRef,
+    AutoTagType,
 )
 from .bytes import (
     dataclass_is_static,
@@ -60,9 +61,9 @@ from .bytes import (
     dataclass_from_bytes_partial,
     BYTES_CATALOG,
     AutoTagTypeValueManager,
-    AutoTagType,
 )
 from .errors import PodPathError
 from .json import JSON_CATALOG
 
-AutoTagType.TAG_TYPE[0] = U64
+# prevent cycles between _utils and types.atomic
+AutoTagTypeValueManager.TAG_TYPE[0] = U64

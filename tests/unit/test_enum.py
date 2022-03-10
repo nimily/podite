@@ -4,7 +4,8 @@ from typing import Optional
 from pod.decorators import pod
 from pod.types.atomic import U16, U32, U8
 from pod.types.enum import Enum, Variant, ENUM_TAG_NAME_MAP, ENUM_TAG_NAME, named_fields
-from pod.bytes import AutoTagType, FORMAT_PASS, FORMAT_BORSCH, FORMAT_ZERO_COPY
+from pod._utils import FORMAT_PASS, FORMAT_BORSCH, FORMAT_ZERO_COPY
+from pod import AutoTagType
 
 
 def test_bytes_enum_without_field():

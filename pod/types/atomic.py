@@ -4,6 +4,7 @@ from io import BytesIO
 from typing import Literal
 
 import pod.decorators as decorators
+import pod._utils as utils
 
 _BYTEORDER: Literal["little", "big"] = "little"
 
@@ -155,3 +156,7 @@ F32 = new_atomic_type("F32", float, "{}f", float)
 F64l = new_atomic_type("F64l", float, "<d", float)
 F64b = new_atomic_type("F64b", float, ">d", float)
 F64 = new_atomic_type("F64", float, "{}d", float)
+
+# necessary to avoid cycles
+utils.FORMAT_TO_TYPE[utils.FORMAT_BORSCH] = U8
+utils.FORMAT_TO_TYPE[utils.FORMAT_ZERO_COPY] = U64

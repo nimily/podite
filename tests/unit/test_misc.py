@@ -1,4 +1,4 @@
-from pod import pod, U16, U32, Option, Static, Enum, Variant, Default, field, U8
+from pod import pod, U16, U32, Option, Static, Enum, Variant, Default, field, U8, AutoTagTypeValueManager
 
 
 def test_bytes_static_option():
@@ -6,7 +6,10 @@ def test_bytes_static_option():
     type_ = Static[option]
 
     assert type_.is_static()
-    assert type_.calc_max_size() == 5
+    assert type_.calc_max_size() == 12
+
+    with AutoTagTypeValueManager(U8):
+        assert type_.calc_max_size() == 5
 
     actual = type_.from_bytes(b"\x00\x00\x00\x00\x00")
     expect = option.NONE
@@ -24,7 +27,9 @@ def test_bytes_static_option_forward_ref():
     type_ = Static[option]
 
     assert type_.is_static()
-    assert type_.calc_max_size() == 3
+    assert type_.calc_max_size() == 10
+    with AutoTagTypeValueManager(U8):
+        assert type_.calc_max_size() == 3
 
     actual = type_.from_bytes(b"\x00\x00\x00")
     expect = option.NONE
