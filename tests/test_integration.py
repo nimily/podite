@@ -55,13 +55,16 @@ def test_round_trip_bytes():
         ],
         [Simple(5, 124, "PodStr")]
     )
-    a_builtin= 1
+
+    # sizes
+    a_builtin = 1
     a_string = 4 + 2
     a_array = 10
     a_bytes = 4 + 3
     a_vec = (4 + (1 + 4 + 2) + 1 + 2 * (1 + 4 + 3))
-    simple_vec = ( 4 + 1 * (8 + 2 + 6))
+    simple_vec = (4 + 1 * (8 + 2 + 6))
     assert MyStruct.calc_size(obj=val) == a_builtin + a_string + a_array + a_bytes + a_vec + simple_vec
+
     serialized = MyStruct.to_bytes(val)
     deserialized = MyStruct.from_bytes(serialized)
 
