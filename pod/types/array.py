@@ -5,7 +5,7 @@ from ..json import JSON_CATALOG
 from ..decorators import pod
 
 
-def _fixed_len_array(name, type_, length):
+def _fixed_len_array(name, type_, length, autopad=False):
     module = get_calling_module()
 
     @pod(dataclass_fn=None)
@@ -13,6 +13,10 @@ def _fixed_len_array(name, type_, length):
         @classmethod
         def _is_static(cls) -> bool:
             return BYTES_CATALOG.is_static(get_concrete_type(module, type_))
+
+        @classmethod
+        def _calc_size(cls, obj, **kwargs):
+            return cls._calc_max_size()
 
         @classmethod
         def _calc_max_size(cls):
@@ -66,6 +70,10 @@ def _fixed_len_bytes(name, length):
             return True
 
         @classmethod
+        def _calc_size(cls, obj, **kwargs):
+            return cls._calc_max_size()
+
+        @classmethod
         def _calc_max_size(cls):
             return length
 
@@ -108,6 +116,10 @@ def _fixed_len_str(name, length, encoding="UTF-8", autopad=True):
         @classmethod
         def _is_static(cls) -> bool:
             return True
+
+        @classmethod
+        def _calc_size(cls, obj, **kwargs):
+            return length
 
         @classmethod
         def _calc_max_size(cls):
@@ -163,6 +175,15 @@ def _var_len_array(name, type_, max_length=None, length_type=None):
         @classmethod
         def is_static(cls) -> bool:
             return False
+
+        @classmethod
+        def _calc_size(cls, obj, **kwargs):
+            len_size = BYTES_CATALOG.calc_max_size(length_type)
+            ty = get_concrete_type(module, type_)
+            body_size = (
+                    sum((BYTES_CATALOG.calc_size(ty, elem, **kwargs) for elem in obj))
+            )
+            return len_size + body_size
 
         @classmethod
         def _calc_max_size(cls):
@@ -233,6 +254,11 @@ def _var_len_bytes(name, max_length=None, length_type=None):
             return False
 
         @classmethod
+        def _calc_size(cls, obj, **kwargs):
+            len_size = BYTES_CATALOG.calc_max_size(length_type)
+            return len_size + len(obj)
+
+        @classmethod
         def _calc_max_size(cls):
             len_size = BYTES_CATALOG.calc_max_size(length_type)
             body_size = max_length
@@ -280,6 +306,11 @@ def _var_len_str(name, max_length=None, length_type=None, encoding="UTF-8"):
         @classmethod
         def _is_static(cls) -> bool:
             return False
+
+        @classmethod
+        def _calc_size(cls, obj, **kwargs):
+            len_size = BYTES_CATALOG.calc_max_size(length_type)
+            return len_size + len(obj.encode("utf-8"))
 
         @classmethod
         def _calc_max_size(cls):

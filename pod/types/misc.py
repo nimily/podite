@@ -53,6 +53,9 @@ def _static(name, type_: Type, length="auto"):
         def _is_static(cls) -> bool:
             return True
 
+        def _calc_size(self, **kwargs):
+            return self.__class__._calc_max_size()
+
         @classmethod
         def _calc_max_size(cls):
             if length == "auto":
@@ -96,6 +99,9 @@ def _default(name, type_: Type, default=None):
         @classmethod
         def _is_static(cls) -> bool:
             return BYTES_CATALOG.is_static(get_concrete_type(module, type_))
+
+        def _calc_size(self, **kwargs):
+            return BYTES_CATALOG.calc_size(get_concrete_type(module, type_), self)
 
         @classmethod
         def _calc_max_size(cls):
@@ -155,6 +161,9 @@ def _forward_ref(name, type_expr):
         @classmethod
         def _is_static(cls) -> bool:
             return BYTES_CATALOG.is_static(cls.get_type())
+
+        def _calc_size(self, **kwargs):
+            return BYTES_CATALOG.calc_size(self.__class__.get_type(), self, **kwargs)
 
         @classmethod
         def _calc_max_size(cls):

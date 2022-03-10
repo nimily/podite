@@ -239,6 +239,16 @@ class Enum(int, Generic[TagType], metaclass=EnumMeta):  # type: ignore
         return True
 
     @classmethod
+    def _calc_size(cls, obj, format=FORMAT_BORSCH, **kwargs):
+        tag_type = cls.get_tag_type()
+        val_size = BYTES_CATALOG.calc_size(tag_type, **kwargs)
+        max_field_size = 0
+        variant: Variant = cls._get_variant(obj.get_name())
+        if variant.field is not None:
+            return val_size + BYTES_CATALOG.calc_size(variant.concrete_field_type, obj.field)
+        return val_size
+
+    @classmethod
     def _calc_max_size(cls):
         tag_type = cls.get_tag_type()
         val_size = BYTES_CATALOG.calc_max_size(tag_type)
@@ -408,10 +418,13 @@ def named_fields(**kwargs):
 
 @dataclass(init=False)
 class AutoTagType:
-
     @classmethod
     def _is_static(cls) -> bool:
         return False
+
+    @classmethod
+    def _calc_size(cls, obj, **kwargs):
+        return BYTES_CATALOG.calc_size(AutoTagTypeValueManager.get_tag())
 
     @classmethod
     def _calc_max_size(cls):
